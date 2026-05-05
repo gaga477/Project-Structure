@@ -1,0 +1,1 @@
+Nice—this is a solid project idea 🔥 Let’s build a basic but functional supermarket POS system called Zunny Mini Mart using JavaScript
