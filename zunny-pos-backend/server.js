@@ -72,9 +72,18 @@ app.use("/auth", require("./routes/authRoutes"));
 app.use("/products", require("./routes/productRoutes"));
 app.use("/sales", require("./routes/salesRoutes"));
 
+// Global error handler — returns JSON so we can see the actual error
+app.use((err, req, res, next) => {
+  console.error("Server error:", err.message);
+  res.status(500).json({ error: err.message });
+});
+
 // Fallback — serve index.html for all unmatched routes
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../client/index.html"));
+  const indexPath = path.join(__dirname, "../client/index.html");
+  res.sendFile(indexPath, (err) => {
+    if (err) res.status(404).json({ error: "Not found" });
+  });
 });
 
 const PORT = process.env.PORT || 5000;
