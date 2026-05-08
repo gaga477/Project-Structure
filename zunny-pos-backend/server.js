@@ -16,22 +16,7 @@ const app = express();
 
 connectDB();
 
-// CORS — allow all origins in production (Render)
-app.use(cors({
-  origin: (origin, callback) => {
-    const allowedOrigins = [
-      "http://localhost:5000",
-      "http://localhost:3000",
-      process.env.CLIENT_URL
-    ].filter(Boolean);
-    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === "production") {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true
-}));
+app.use(cors({ origin: true, credentials: true }));
 
 app.use(express.json());
 
