@@ -1,0 +1,5 @@
+node_modules/
+zunny-pos-backend/node_modules/
+zunny-pos-backend/config/.env
+.env
+*.log
