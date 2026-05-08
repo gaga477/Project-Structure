@@ -6,8 +6,7 @@ const productSchema = new mongoose.Schema({
   costPrice: Number,  // 📦 Cost price
   stock: Number,
   barcode: String,
-  image: String,      // 🖼️ Image URL or path
-  category: String    // 📂 Product category
+  category: String
 });
 
 module.exports = mongoose.model("Product", productSchema);

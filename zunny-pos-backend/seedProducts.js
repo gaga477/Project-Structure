@@ -9,7 +9,6 @@ const products = [
     costPrice: 1000,
     stock: 50,
     barcode: "CAR001",
-    image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRHhIYJ915cnPSvf-ifktJPPGx_SQQ9osfKiw&s",
     category: "Beauty & Skincare"
   },
   {
@@ -18,7 +17,6 @@ const products = [
     costPrice: 2800,
     stock: 30,
     barcode: "DIS001",
-    image: "/images/products/dissar-cocoa-butter.jpg",
     category: "Beauty & Skincare"
   },
   {
@@ -27,7 +25,6 @@ const products = [
     costPrice: 1700,
     stock: 25,
     barcode: "ROU001",
-    image: "/images/products/roushun-vitamin-c.jpg",
     category: "Beauty & Skincare"
   },
   {
@@ -36,7 +33,6 @@ const products = [
     costPrice: 28000,
     stock: 8,
     barcode: "PEA001",
-    image: "/images/products/peak-2500g.jpg",
     category: "Dairy & Beverages"
   },
   {
@@ -45,7 +41,6 @@ const products = [
     costPrice: 4200,
     stock: 30,
     barcode: "IND002",
-    image: "/images/products/indomie-chicken.jpg",
     category: "Food & Snacks"
   },
   {
@@ -54,7 +49,6 @@ const products = [
     costPrice: 4200,
     stock: 18,
     barcode: "NPR001",
-    image: "/images/products/nivea-perfect-radiant.jpg",
     category: "Beauty & Skincare"
   },
   {
@@ -63,7 +57,6 @@ const products = [
     costPrice: 500,
     stock: 50,
     barcode: "COC002",
-    image: "/images/products/coca-cola-50cl.jpg",
     category: "Beverages"
   },
   {
@@ -72,7 +65,6 @@ const products = [
     costPrice: 4200,
     stock: 15,
     barcode: "DET001",
-    image: "/images/products/dettol-250ml.jpg",
     category: "Cleaning & Household"
   },
   {
@@ -2369,8 +2361,7 @@ const products = [
     price: 1500,
     costPrice: 1250,
     stock: 30,
-    barcode: "CWM001",
-    image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyj3OQ-fK8VCmcUC1r95V6MEuGx5FdPX5ipg&s"
+    barcode: "CWM001"
   },
   {
     name: "Cow Chocolate",
