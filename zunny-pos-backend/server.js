@@ -1,6 +1,11 @@
-// Load .env only in development (Render injects env vars directly)
-if (process.env.NODE_ENV !== "production") {
+// Load .env file if it exists (local dev), Render injects env vars directly
+try {
   require("dotenv").config({ path: require("path").join(__dirname, "config/.env") });
+} catch (e) {}
+
+if (!process.env.MONGODB_URL) {
+  console.error("❌ MONGODB_URL is not set. Please add it to your environment variables.");
+  process.exit(1);
 }
 const express = require("express");
 const cors = require("cors");
