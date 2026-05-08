@@ -73,7 +73,7 @@ async function loadReport() {
   const start = document.getElementById("start").value;
   const end = document.getElementById("end").value;
 
-  let url = "http://localhost:5000/api/sales/report";
+  let url = "/api/sales/report";
   if (start && end) url += `?start=${start}&end=${end}`;
 
   const res = await fetch(url, {
@@ -110,7 +110,7 @@ async function loadReport() {
 
 // 🧾 Load Sales History
 async function loadSales() {
-  const res = await fetch("http://localhost:5000/api/sales", {
+  const res = await fetch("/api/sales", {
     headers: { Authorization: token }
   });
 
