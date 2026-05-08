@@ -347,7 +347,7 @@
       renderProducts();
     }
     try {
-      const res = await fetch("https://zunny-pos.onrender.com/products", {
+      const res = await fetch("/api/products", {
         headers: { "Authorization": "Bearer " + localStorage.getItem("token") }
       });
       if (!res.ok) throw new Error();
@@ -439,7 +439,7 @@
     };
 
     try {
-      const res = await fetch("https://zunny-pos.onrender.com/sales", {
+      const res = await fetch("/api/sales", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -473,7 +473,7 @@
       if (syncedIds.includes(sale.offlineId)) continue;
 
       try {
-        await fetch("https://zunny-pos.onrender.com/sales", {
+        await fetch("/api/sales", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -526,7 +526,7 @@
     const code = barcodeInput.value.trim();
     if (!code) return;
     try {
-      const res = await fetch(`https://zunny-pos.onrender.com/products/barcode/${code}`, {
+      const res = await fetch(`/api/products/barcode/${code}`, {
         headers: { "Authorization": "Bearer " + localStorage.getItem("token") }
       });
       if (!res.ok) throw new Error();
