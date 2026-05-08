@@ -4,8 +4,8 @@
   "description": "",
   "main": "zunny-pos-backend/server.js",
   "scripts": {
-    "start": "node zunny-pos-backend/server.js",
-    "dev": "nodemon zunny-pos-backend/server.js"
+    "start": "cd zunny-pos-backend && node server.js",
+    "dev": "cd zunny-pos-backend && nodemon server.js"
   },
   "repository": {
     "type": "git",

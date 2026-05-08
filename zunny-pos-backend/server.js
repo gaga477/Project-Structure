@@ -1,4 +1,7 @@
-require("dotenv").config({ path: require("path").join(__dirname, "config/.env") });
+// Load .env only in development (Render injects env vars directly)
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config({ path: require("path").join(__dirname, "config/.env") });
+}
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
