@@ -35,6 +35,9 @@ app.use(cors({
 
 app.use(express.json());
 
+// Health check route
+app.get("/health", (req, res) => res.json({ status: "ok", mongodb: "connected" }));
+
 // Serve static files (images)
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
 
