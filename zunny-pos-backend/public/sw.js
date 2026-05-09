@@ -1,10 +1,12 @@
-const CACHE_NAME = "zunny-cache";
+const CACHE_NAME = "zunny-pos-v5";
 const ASSETS = [
   "/",
   "/index.html",
   "/login.html",
   "/admin.html",
   "/manifest.json",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
   "/js/quagga.min.js"
 ];
 

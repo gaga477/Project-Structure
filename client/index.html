@@ -6,6 +6,9 @@
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#1e293b">
   <title>Zunny Mini Mart POS</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#16a34a">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -256,6 +259,36 @@
       background: #dc2626; color: white;
       text-align: center; padding: 7px;
       font-size: 13px; font-weight: 600; z-index: 9999;
+    }
+
+    #installBanner {
+      position: fixed; bottom: 20px; left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b; color: white;
+      padding: 14px 24px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      gap: 14px;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    #installBanner.show { display: flex; }
+
+    #installBanner .install-btn {
+      background: #16a34a; color: white;
+      border: none; border-radius: 8px;
+      padding: 8px 18px; font-size: 13px;
+      font-weight: 700; cursor: pointer;
+    }
+
+    #installBanner .dismiss-btn {
+      background: transparent; color: #94a3b8;
+      border: none; font-size: 18px; cursor: pointer;
+      padding: 0 4px;
     }
   </style>
 </head>
@@ -566,6 +599,52 @@
   if (navigator.onLine) syncPendingSales();
 
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+
+  // PWA Install Banner
+  let deferredPrompt;
+  const banner = document.createElement("div");
+  banner.id = "installBanner";
+  banner.innerHTML = `
+    <span>&#128241; Install Zunny POS as an App</span>
+    <button class="install-btn" id="installBtn">Install Now</button>
+    <button class="dismiss-btn" id="dismissBtn">&#x2715;</button>
+  `;
+  Object.assign(banner.style, {
+    position: "fixed", bottom: "20px", left: "50%",
+    transform: "translateX(-50%)",
+    background: "#1e293b", color: "white",
+    padding: "14px 24px", borderRadius: "12px",
+    boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+    zIndex: "9999", display: "none",
+    alignItems: "center", gap: "14px",
+    fontSize: "14px", whiteSpace: "nowrap"
+  });
+  document.body.appendChild(banner);
+
+  banner.querySelector(".install-btn").style.cssText = "background:#16a34a;color:white;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;";
+  banner.querySelector(".dismiss-btn").style.cssText = "background:transparent;color:#94a3b8;border:none;font-size:18px;cursor:pointer;padding:0 4px;";
+
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    banner.style.display = "flex";
+  });
+
+  document.getElementById("installBtn").addEventListener("click", async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    banner.style.display = "none";
+  });
+
+  document.getElementById("dismissBtn").addEventListener("click", () => {
+    banner.style.display = "none";
+  });
+
+  window.addEventListener("appinstalled", () => {
+    banner.style.display = "none";
+  });
 
   loadProducts();
 </script>

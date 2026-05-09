@@ -29,6 +29,15 @@ app.use('/images', express.static(path.join(__dirname, 'public/images')));
 // Serve JS libraries
 app.use('/js', express.static(path.join(__dirname, 'public/js')));
 
+// Serve icons
+app.use('/icons', express.static(path.join(__dirname, 'public/icons')));
+
+// Serve manifest
+app.get('/manifest.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/manifest+json');
+  res.sendFile(path.join(__dirname, 'public/manifest.json'));
+});
+
 // Serve service worker with correct headers
 app.get('/sw.js', (req, res) => {
   res.setHeader('Service-Worker-Allowed', '/');
