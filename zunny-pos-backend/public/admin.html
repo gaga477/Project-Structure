@@ -368,6 +368,8 @@
             if (!salesRes.ok) {
                 showMessage("Error loading today’s performance", "error");
             }
+
+            await loadReport();
         } catch {
             showMessage("Error loading dashboard", "error");
         }
@@ -416,7 +418,7 @@
     function clearReport() {
         document.getElementById("reportStart").value = "";
         document.getElementById("reportEnd").value = "";
-        document.getElementById("reportBody").innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:#999">Select dates and click Filter to load sales history</td></tr>`;
+        loadReport();
     }
 
     async function loadProducts() {
