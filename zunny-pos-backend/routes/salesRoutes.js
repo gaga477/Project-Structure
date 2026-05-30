@@ -132,7 +132,7 @@ router.get("/", auth, async (req, res) => {
     return res.status(403).json({ message: "Admins only" });
   }
   try {
-    const sales = await Sale.find().sort({ createdAt: -1 });
+    const sales = await Sale.find().sort({ date: -1 });
     res.json(sales);
   } catch (err) {
     res.status(500).json({ error: err.message });
