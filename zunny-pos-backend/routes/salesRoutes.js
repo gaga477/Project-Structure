@@ -90,6 +90,42 @@ router.get("/report", auth, async (req, res) => {
   }
 });
 
+// 📈 Today's performance
+router.get("/today-performance", auth, async (req, res) => {
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ message: "Admins only" });
+  }
+
+  try {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+
+    const sales = await Sale.find({
+      date: {
+        $gte: start,
+        $lte: end
+      }
+    });
+
+    const transactionsToday = sales.length;
+    const revenueToday = sales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+    const profitToday = sales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
+    const profitMargin = revenueToday > 0 ? ((profitToday / revenueToday) * 100).toFixed(2) : 0;
+
+    res.json({
+      transactionsToday,
+      revenueToday,
+      profitToday,
+      profitMargin
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 🧾 Get all sales
 router.get("/", auth, async (req, res) => {
   if (req.user.role !== "admin") {
