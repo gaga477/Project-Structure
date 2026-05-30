@@ -56,9 +56,14 @@ router.get("/report", auth, async (req, res) => {
     const match = {};
 
     if (start && end) {
-      match.createdAt = {
-        $gte: new Date(start),
-        $lte: new Date(end)
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(end)) {
+        endDate.setHours(23, 59, 59, 999);
+      }
+      match.date = {
+        $gte: startDate,
+        $lte: endDate
       };
     }
 

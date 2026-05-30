@@ -319,18 +319,104 @@
         setTimeout(() => div.innerHTML = "", 5000);
     }
 
+    function formatCurrency(amount) {
+        return "₦" + Number(amount || 0).toLocaleString();
+    }
+
+    function getTodayDateRange() {
+        const today = new Date();
+        const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const end = new Date(start.getTime() + 24 * 60 * 60 * 1000 - 1);
+        return { start: start.toISOString(), end: end.toISOString() };
+    }
+
     async function loadDashboard() {
         try {
-            const res = await fetch("/api/products");
-            const products = await res.json();
+            const [productsRes, salesRes] = await Promise.all([
+                fetch("/api/products"),
+                fetch(`/api/sales/report?start=${encodeURIComponent(getTodayDateRange().start)}&end=${encodeURIComponent(getTodayDateRange().end)}`, {
+                    headers: authHeaders()
+                })
+            ]);
+
+            const products = await productsRes.json();
             const totalValue = products.reduce((s, p) => s + (p.price * p.stock), 0);
             const lowStock = products.filter(p => p.stock < 10).length;
             const cats = new Set(products.map(p => p.category).filter(Boolean)).size;
             document.getElementById("totalProducts").textContent = products.length;
-            document.getElementById("totalValue").textContent = "₦" + totalValue.toLocaleString();
+            document.getElementById("totalValue").textContent = formatCurrency(totalValue);
             document.getElementById("lowStock").textContent = lowStock;
             document.getElementById("totalCategories").textContent = cats;
-        } catch { showMessage("Error loading dashboard", "error"); }
+
+            const todayReport = salesRes.ok ? await salesRes.json() : [];
+            const todayTotals = todayReport.reduce((summary, day) => {
+                summary.count += day.count;
+                summary.revenue += day.totalSales;
+                summary.profit += day.totalProfit;
+                return summary;
+            }, { count: 0, revenue: 0, profit: 0 });
+
+            const margin = todayTotals.revenue > 0
+                ? ((todayTotals.profit / todayTotals.revenue) * 100).toFixed(2)
+                : 0;
+
+            document.getElementById("todaySales").textContent = todayTotals.count;
+            document.getElementById("todayRevenue").textContent = formatCurrency(todayTotals.revenue);
+            document.getElementById("todayProfit").textContent = formatCurrency(todayTotals.profit);
+            document.getElementById("todayMargin").textContent = `${margin}%`;
+
+            if (!salesRes.ok) {
+                showMessage("Error loading today’s performance", "error");
+            }
+        } catch {
+            showMessage("Error loading dashboard", "error");
+        }
+    }
+
+    async function loadReport() {
+        try {
+            const startDate = document.getElementById("reportStart").value;
+            const endDate = document.getElementById("reportEnd").value;
+            let url = "/api/sales/report";
+            if (startDate && endDate) {
+                url += `?start=${encodeURIComponent(startDate)}&end=${encodeURIComponent(endDate)}`;
+            }
+
+            const res = await fetch(url, { headers: authHeaders() });
+            const report = res.ok ? await res.json() : [];
+            const body = document.getElementById("reportBody");
+
+            if (!res.ok) {
+                body.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:#d9534f">Unable to load report</td></tr>`;
+                return;
+            }
+
+            if (!report.length) {
+                body.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:#999">No sales found for the selected period</td></tr>`;
+                return;
+            }
+
+            body.innerHTML = report.map(day => {
+                const date = new Date(day._id.year, day._id.month - 1, day._id.day);
+                const margin = day.totalSales > 0 ? ((day.totalProfit / day.totalSales) * 100).toFixed(2) : 0;
+                return `
+                    <tr>
+                        <td style="padding:12px;border-bottom:1px solid #e9ecef">${date.toLocaleDateString()}</td>
+                        <td style="padding:12px;text-align:right;border-bottom:1px solid #e9ecef">${day.count}</td>
+                        <td style="padding:12px;text-align:right;border-bottom:1px solid #e9ecef">${formatCurrency(day.totalSales)}</td>
+                        <td style="padding:12px;text-align:right;border-bottom:1px solid #e9ecef">${formatCurrency(day.totalProfit)}</td>
+                        <td style="padding:12px;text-align:right;border-bottom:1px solid #e9ecef">${margin}%</td>
+                    </tr>`;
+            }).join("");
+        } catch {
+            document.getElementById("reportBody").innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:#d9534f">Error loading report</td></tr>`;
+        }
+    }
+
+    function clearReport() {
+        document.getElementById("reportStart").value = "";
+        document.getElementById("reportEnd").value = "";
+        document.getElementById("reportBody").innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:#999">Select dates and click Filter to load sales history</td></tr>`;
     }
 
     async function loadProducts() {
