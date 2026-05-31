@@ -344,8 +344,8 @@
                 throw new Error(productsData.message || `Unable to load products (${productsRes.status})`);
             }
 
-            const totalValue = productsData.reduce((s, p) => s + (p.price * p.stock), 0);
-            const lowStock = productsData.filter(p => p.stock < 10).length;
+            const totalValue = productsData.reduce((s, p) => s + ((p.price || 0) * (p.stock || 0)), 0);
+            const lowStock = productsData.filter(p => (p.stock || 0) < 10).length;
             const cats = new Set(productsData.map(p => p.category).filter(Boolean)).size;
             document.getElementById("totalProducts").textContent = productsData.length;
             document.getElementById("totalValue").textContent = formatCurrency(totalValue);
@@ -455,10 +455,10 @@
             <div class="product-card">
                 ${p.image ? `<img src="${p.image}" alt="${p.name}" class="product-image">` : `<div class="no-image">📦 No Image</div>`}
                 <h3 style="margin-bottom:6px">${p.name}</h3>
-                <div class="product-price">₦${p.price.toLocaleString()}</div>
+                <div class="product-price">₦${(p.price || 0).toLocaleString()}</div>
                 <div class="product-details">
-                    <p>Cost: ₦${p.costPrice.toLocaleString()}</p>
-                    <p>Stock: ${p.stock} units</p>
+                    <p>Cost: ₦${(p.costPrice || 0).toLocaleString()}</p>
+                    <p>Stock: ${p.stock || 0} units</p>
                     <p>Barcode: ${p.barcode || "N/A"}</p>
                     ${p.category ? `<span class="category-badge">${p.category}</span>` : ""}
                 </div>
@@ -583,7 +583,7 @@
             data.forEach(p => {
                 const opt = document.createElement("option");
                 opt.value = p._id;
-                opt.textContent = `${p.name} — ₦${p.price.toLocaleString()}`;
+                opt.textContent = `${p.name} — ₦${(p.price || 0).toLocaleString()}`;
                 select.appendChild(opt);
             });
         } catch (error) {
