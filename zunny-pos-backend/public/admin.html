@@ -339,11 +339,15 @@
                 })
             ]);
 
-            const products = await productsRes.json();
-            const totalValue = products.reduce((s, p) => s + (p.price * p.stock), 0);
-            const lowStock = products.filter(p => p.stock < 10).length;
-            const cats = new Set(products.map(p => p.category).filter(Boolean)).size;
-            document.getElementById("totalProducts").textContent = products.length;
+            const productsData = await productsRes.json();
+            if (!productsRes.ok) {
+                throw new Error(productsData.message || `Unable to load products (${productsRes.status})`);
+            }
+
+            const totalValue = productsData.reduce((s, p) => s + (p.price * p.stock), 0);
+            const lowStock = productsData.filter(p => p.stock < 10).length;
+            const cats = new Set(productsData.map(p => p.category).filter(Boolean)).size;
+            document.getElementById("totalProducts").textContent = productsData.length;
             document.getElementById("totalValue").textContent = formatCurrency(totalValue);
             document.getElementById("lowStock").textContent = lowStock;
             document.getElementById("totalCategories").textContent = cats;
@@ -422,12 +426,23 @@
     }
 
     async function loadProducts() {
+        const grid = document.getElementById("productsGrid");
+        grid.innerHTML = '<p style="text-align:center;color:#999;grid-column:1/-1">Loading products...</p>';
+
         try {
             const res = await fetch("/api/products");
-            allProducts = await res.json();
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.message || `Unable to load products (${res.status})`);
+            }
+            allProducts = data;
             filteredProducts = [...allProducts];
             displayProducts();
-        } catch { showMessage("Error loading products", "error"); }
+        } catch (error) {
+            console.error("Error loading products:", error);
+            grid.innerHTML = '<p style="text-align:center;color:#999;grid-column:1/-1">Unable to load products. Refresh or check the server.</p>';
+            showMessage("Error loading products", "error");
+        }
     }
 
     function displayProducts() {
@@ -559,16 +574,23 @@
     async function loadProductsForSelect() {
         try {
             const res = await fetch("/api/products");
-            const products = await res.json();
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.message || `Unable to load products (${res.status})`);
+            }
             const select = document.getElementById("imageProductSelect");
             select.innerHTML = '<option value="">Select a product...</option>';
-            products.forEach(p => {
+            data.forEach(p => {
                 const opt = document.createElement("option");
                 opt.value = p._id;
                 opt.textContent = `${p.name} — ₦${p.price.toLocaleString()}`;
                 select.appendChild(opt);
             });
-        } catch { showMessage("Error loading products", "error"); }
+        } catch (error) {
+            console.error("Error loading products for select:", error);
+            document.getElementById("imageProductSelect").innerHTML = '<option value="">Unable to load products</option>';
+            showMessage("Error loading products", "error");
+        }
     }
 
     // Upload image
