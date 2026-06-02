@@ -1,15 +1,26 @@
-// Load .env file if it exists (local dev), Render injects env vars directly
-try {
-  require("dotenv").config({ path: require("path").join(__dirname, "config/.env") });
-} catch (e) {}
+const fs = require("fs");
+const path = require("path");
 
-if (!process.env.MONGODB_URL) {
-  console.error("❌ MONGODB_URL is not set. Please add it to your environment variables.");
-  process.exit(1);
+// Load .env from workspace root if present, otherwise use backend config/.env
+let envPath = null;
+try {
+  const rootEnv = path.join(__dirname, "../.env");
+  const localEnv = path.join(__dirname, "config/.env");
+  envPath = fs.existsSync(rootEnv) ? rootEnv : localEnv;
+  const result = require("dotenv").config({ path: envPath });
+  if (result.error) throw result.error;
+  console.log(`Loaded environment variables from ${envPath}`);
+} catch (e) {
+  console.warn("Could not load .env file:", e && e.message ? e.message : e);
+}
+
+if (!process.env.MONGODB_URL && !process.env.MONGODB_URI) {
+  console.warn("⚠️  MONGODB_URL or MONGODB_URI is not set. DB connection will likely fail.");
+} else {
+  console.log("MongoDB connection string present (hidden).");
 }
 const express = require("express");
 const cors = require("cors");
-const path = require("path");
 const connectDB = require("./config/db");
 
 const app = express();
@@ -19,6 +30,11 @@ connectDB();
 app.use(cors({ origin: true, credentials: true }));
 
 app.use(express.json());
+
+// Async error wrapper — catches unhandled errors in async route handlers
+const asyncHandler = (fn) => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
 
 // Health check route
 app.get("/health", (req, res) => res.json({ status: "ok", mongodb: "connected" }));
@@ -66,10 +82,21 @@ app.use("/auth", require("./routes/authRoutes"));
 app.use("/products", require("./routes/productRoutes"));
 app.use("/sales", require("./routes/salesRoutes"));
 
-// Global error handler — returns JSON so we can see the actual error
+// Global error handler — catches Mongoose and other errors gracefully
 app.use((err, req, res, next) => {
-  console.error("Server error:", err.message);
-  res.status(500).json({ error: err.message });
+  console.error("Error:", err.name, "-", err.message);
+  
+  // Handle Mongoose buffer timeout or connection errors
+  if (err.name === "MongooseError" || err.code === "ECONNREFUSED") {
+    return res.status(503).json({ 
+      error: "Database unavailable", 
+      message: "The database connection is currently unavailable. Please try again later."
+    });
+  }
+  
+  res.status(500).json({ 
+    error: err.message || "Internal server error" 
+  });
 });
 
 // Fallback — serve index.html for all unmatched routes
@@ -82,3 +109,15 @@ app.get("*", (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Handle unhandled promise rejections
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+  // Don't exit - let the server continue
+});
+
+// Handle uncaught exceptions
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught Exception:", error);
+  // Don't exit - let the server continue
+});
