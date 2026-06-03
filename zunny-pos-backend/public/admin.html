@@ -343,28 +343,6 @@
             document.getElementById("totalValue").textContent = formatCurrency(totalValue);
             document.getElementById("lowStock").textContent = lowStock;
             document.getElementById("totalCategories").textContent = cats;
-
-            const todayReport = salesRes.ok ? await salesRes.json() : [];
-            const todayTotals = todayReport.reduce((summary, day) => {
-                summary.count += day.count;
-                summary.revenue += day.totalSales;
-                summary.profit += day.totalProfit;
-                return summary;
-            }, { count: 0, revenue: 0, profit: 0 });
-
-            const margin = todayTotals.revenue > 0
-                ? ((todayTotals.profit / todayTotals.revenue) * 100).toFixed(2)
-                : 0;
-
-            document.getElementById("todaySales").textContent = todayTotals.count;
-            document.getElementById("todayRevenue").textContent = formatCurrency(todayTotals.revenue);
-            document.getElementById("todayProfit").textContent = formatCurrency(todayTotals.profit);
-            document.getElementById("todayMargin").textContent = `${margin}%`;
-
-            if (!salesRes.ok) {
-                showMessage("Error loading today’s performance", "error");
-            }
-
             await loadReport();
         } catch {
             showMessage("Error loading dashboard", "error");
