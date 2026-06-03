@@ -47,6 +47,17 @@ router.post("/", auth, async (req, res) => {
   }
 });
 
+// Delete all products — admin only
+router.delete("/all", auth, async (req, res) => {
+  if (req.user.role !== "admin") return res.status(403).json({ message: "Admins only" });
+  try {
+    const result = await Product.deleteMany({});
+    res.json({ message: `Deleted ${result.deletedCount} products` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Update product — admin only
 router.put("/:id", auth, async (req, res) => {
   if (req.user.role !== "admin") {
