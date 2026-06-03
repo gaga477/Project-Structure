@@ -527,24 +527,34 @@
 
   function printReceipt() {
     const date = new Date().toLocaleString();
-    const rows = cart.map(i => `<tr><td>${i.name} x${i.qty}</td><td>₦${(i.price * i.qty).toLocaleString()}</td></tr>`).join("");
-    const w = window.open("", "PRINT", "width=300,height=600");
+    const rows = cart.map(i => `<tr><td>${i.name} x${i.qty}</td><td style="text-align:right">&#8358;${(i.price * i.qty).toLocaleString()}</td></tr>`).join("");
+    const w = window.open("", "PRINT", "width=320,height=600");
     w.document.write(`<html><head><style>
-      body{font-family:monospace;width:250px}
-      h2,p{text-align:center;margin:5px 0}
-      table{width:100%;font-size:12px}
-      td{padding:4px 0}
-      .tot{font-weight:bold;border-top:1px dashed #000;margin-top:10px;padding-top:5px}
+      @media print { @page { margin: 0; size: 80mm auto; } }
+      body{font-family:monospace;width:72mm;margin:0 auto;font-size:13px}
+      h2{text-align:center;font-size:15px;margin:6px 0}
+      p{text-align:center;margin:3px 0;font-size:12px}
+      table{width:100%;border-collapse:collapse;margin:8px 0}
+      td{padding:3px 0;vertical-align:top}
+      td:last-child{text-align:right;white-space:nowrap}
+      .divider{border-top:1px dashed #000;margin:6px 0}
+      .tot{font-weight:bold;font-size:14px;display:flex;justify-content:space-between;padding-top:6px}
+      .footer{text-align:center;margin-top:8px;font-size:11px}
     </style></head><body>
       <h2>Zunny Mini Mart</h2>
       <p>No: 221 New Ogorode road Sapele</p>
       <p>Tel: 08088309326, 07066787348</p>
       <p>${date}</p>
+      <div class="divider"></div>
       <table>${rows}</table>
-      <p class="tot">TOTAL: ₦${total.toLocaleString()}</p>
-      <p>Thank you for shopping!</p>
+      <div class="divider"></div>
+      <div class="tot"><span>TOTAL</span><span>&#8358;${total.toLocaleString()}</span></div>
+      <div class="divider"></div>
+      <p class="footer">Thank you for shopping!</p>
     </body></html>`);
-    w.document.close(); w.focus(); w.print(); w.close();
+    w.document.close();
+    w.focus();
+    setTimeout(() => { w.print(); w.close(); }, 300);
   }
 
   function logout() {
