@@ -5,14 +5,19 @@ const jwt = require("jsonwebtoken");
 
 const SECRET = process.env.JWT_SECRET || "zunny_secret_key";
 
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 // Register (Admin only ideally)
 router.post("/register", async (req, res) => {
   try {
     const { username, password, role } = req.body;
+    const normalizedUsername = typeof username === "string" ? username.trim() : "";
 
     const hashed = await bcrypt.hash(password, 10);
 
-    const user = new User({ username, password: hashed, role });
+    const user = new User({ username: normalizedUsername, password: hashed, role });
     await user.save();
 
     res.json({ message: "User registered", user: { username, role } });
@@ -25,8 +30,10 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
+    const normalizedUsername = typeof username === "string" ? username.trim() : "";
+    const escapedUsername = escapeRegex(normalizedUsername);
 
-    const user = await User.findOne({ username });
+    const user = await User.findOne({ username: { $regex: `^${escapedUsername}$`, $options: "i" } });
     if (!user) return res.status(400).json({ message: "User not found" });
 
     const valid = await bcrypt.compare(password, user.password);

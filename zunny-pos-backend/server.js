@@ -21,15 +21,70 @@ if (!process.env.MONGODB_URL && !process.env.MONGODB_URI) {
 }
 const express = require("express");
 const cors = require("cors");
+const bcrypt = require("bcryptjs");
 const connectDB = require("./config/db");
+const User = require("./models/User");
 
 const app = express();
 
-connectDB();
+const DEFAULT_ADMIN_USERNAME = process.env.DEFAULT_ADMIN_USERNAME || "admin";
+const DEFAULT_ADMIN_PASSWORD = process.env.DEFAULT_ADMIN_PASSWORD || "admin123";
+const DEFAULT_ADMIN_ROLE = process.env.DEFAULT_ADMIN_ROLE || "admin";
+
+async function ensureDefaultAdmin() {
+  try {
+    const adminExists = await User.findOne({ username: DEFAULT_ADMIN_USERNAME });
+    if (!adminExists) {
+      const hashedPassword = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 10);
+      await User.create({ username: DEFAULT_ADMIN_USERNAME, password: hashedPassword, role: DEFAULT_ADMIN_ROLE });
+      console.log(`Created default admin user: ${DEFAULT_ADMIN_USERNAME}`);
+    }
+
+    const cashierExists = await User.findOne({ username: "cashier1" });
+    if (!cashierExists) {
+      const hashedPassword = await bcrypt.hash("cashier123", 10);
+      await User.create({ username: "cashier1", password: hashedPassword, role: "cashier" });
+      console.log("Created cashier user: cashier1 / cashier123");
+    }
+  } catch (err) {
+    console.error("Error ensuring default admin:", err.message || err);
+  }
+}
 
 app.use(cors({ origin: true, credentials: true }));
 
 app.use(express.json());
+
+// Simple request/response logger to help debug 4xx/5xx responses
+app.use((req, res, next) => {
+  const start = Date.now();
+  const chunks = [];
+
+  const _write = res.write;
+  const _end = res.end;
+
+  res.write = function (chunk) {
+    try { chunks.push(Buffer.from(chunk)); } catch (e) {}
+    return _write.apply(res, arguments);
+  };
+
+  res.end = function (chunk) {
+    try { if (chunk) chunks.push(Buffer.from(chunk)); } catch (e) {}
+    return _end.apply(res, arguments);
+  };
+
+  res.on("finish", () => {
+    const ms = Date.now() - start;
+    const respBody = Buffer.concat(chunks).toString("utf8");
+    console.log(`${req.method} ${req.originalUrl} ${res.statusCode} - ${ms}ms`);
+    if (res.statusCode >= 400) {
+      console.log("--- REQUEST BODY ---", req.method === "GET" ? "(empty)" : JSON.stringify(req.body || {}));
+      console.log("--- RESPONSE BODY ---", respBody || "(empty)");
+    }
+  });
+
+  next();
+});
 
 // Async error wrapper — catches unhandled errors in async route handlers
 const asyncHandler = (fn) => (req, res, next) => {
@@ -108,7 +163,19 @@ app.get("*", (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+async function startServer() {
+  try {
+    await connectDB();
+    await ensureDefaultAdmin();
+  } catch (err) {
+    console.error("Database startup issue:", err.message || err);
+  }
+
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
+
+startServer();
 
 // Handle unhandled promise rejections
 process.on("unhandledRejection", (reason, promise) => {
