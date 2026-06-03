@@ -2646,6 +2646,8 @@ const products = [
   }
 ];
 
+module.exports = { seedData: products };
+
 async function seedProducts() {
   try {
     await mongoose.connect(process.env.MONGODB_URL || process.env.MONGODB_URI);

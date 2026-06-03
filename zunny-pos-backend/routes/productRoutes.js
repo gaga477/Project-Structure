@@ -3,6 +3,20 @@ const router = express.Router();
 const Product = require("../models/product");
 const auth = require("../middleware/auth");
 
+// One-time seed route — admin only
+router.post("/seed", auth, async (req, res) => {
+  if (req.user.role !== "admin") return res.status(403).json({ message: "Admins only" });
+  try {
+    const count = await Product.countDocuments();
+    if (count > 0) return res.json({ message: `Skipped — ${count} products already exist` });
+    const { seedData } = require("../seedProducts");
+    await Product.insertMany(seedData);
+    res.json({ message: `Seeded ${seedData.length} products successfully` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Get all products (with optional search)
 router.get("/", async (req, res) => {
   const { search } = req.query;
