@@ -46,26 +46,6 @@
 </div>
 
 <div class="card">
-  <h3>Transactions Today</h3>
-  <h2 id="transactionsToday">0</h2>
-</div>
-
-<div class="card">
-  <h3>Revenue Today</h3>
-  <h2 id="revenueToday">₦0</h2>
-</div>
-
-<div class="card">
-  <h3>Profit Today</h3>
-  <h2 id="profitToday">₦0</h2>
-</div>
-
-<div class="card">
-  <h3>Profit Margin</h3>
-  <h2 id="profitMargin">0%</h2>
-</div>
-
-<div class="card">
   <input type="date" id="start">
   <input type="date" id="end">
   <button onclick="loadReport()">Filter</button>
@@ -146,30 +126,12 @@ async function loadSales() {
   });
 }
 
-async function loadTodayPerformance() {
-  const token = localStorage.getItem("token");
-
-  const res = await fetch("/api/sales/today-performance", {
-    headers: {
-      Authorization: "Bearer " + token
-    }
-  });
-
-  const data = await res.json();
-
-  document.getElementById("transactionsToday").textContent = data.transactionsToday || 0;
-  document.getElementById("revenueToday").textContent = "₦" + (data.revenueToday || 0).toLocaleString();
-  document.getElementById("profitToday").textContent = "₦" + (data.profitToday || 0).toLocaleString();
-  document.getElementById("profitMargin").textContent = (data.profitMargin || 0) + "%";
-}
-
 function logout() {
   localStorage.removeItem("token");
   localStorage.removeItem("role");
   window.location.href = "login.html";
 }
 
-loadTodayPerformance();
 loadReport();
 loadSales();
 </script>
