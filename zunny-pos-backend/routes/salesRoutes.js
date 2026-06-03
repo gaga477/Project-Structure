@@ -126,6 +126,21 @@ router.get("/today-performance", auth, async (req, res) => {
   }
 });
 
+// Delete today's sales — admin only
+router.delete("/today", auth, async (req, res) => {
+  if (req.user.role !== "admin") return res.status(403).json({ message: "Admins only" });
+  try {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+    const result = await Sale.deleteMany({ date: { $gte: start, $lte: end } });
+    res.json({ message: `Cleared ${result.deletedCount} sales for today` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 🧾 Get all sales
 router.get("/", auth, async (req, res) => {
   if (req.user.role !== "admin") {
