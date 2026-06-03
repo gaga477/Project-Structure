@@ -127,7 +127,15 @@
                 <div class="stat-card"><div class="stat-number" id="totalCategories">0</div><div class="stat-label">Categories</div></div>
             </div>
 
-            <h3 style="margin:24px 0 16px;color:#555">Sales History</h3>
+            
+            <h3 style="margin:24px 0 16px;color:#555">Today's Performance</h3>
+            <div class="stats">
+                <div class="stat-card"><div class="stat-number" id="todayRevenue">&#8358;0</div><div class="stat-label" style="color:#667eea">Revenue Today</div></div>
+                <div class="stat-card"><div class="stat-number" id="todayProfit" style="color:#40c057">&#8358;0</div><div class="stat-label">Profit Today</div></div>
+                <div class="stat-card"><div class="stat-number" id="todayMargin" style="color:#f59e0b">0%</div><div class="stat-label">Profit Margin</div></div>
+            </div>
+
+<h3 style="margin:24px 0 16px;color:#555">Sales History</h3>
             <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
                 <input type="date" id="reportStart" style="padding:8px 12px;border:2px solid #e9ecef;border-radius:8px;font-size:14px">
                 <input type="date" id="reportEnd" style="padding:8px 12px;border:2px solid #e9ecef;border-radius:8px;font-size:14px">
@@ -343,6 +351,15 @@
             document.getElementById("totalValue").textContent = formatCurrency(totalValue);
             document.getElementById("lowStock").textContent = lowStock;
             document.getElementById("totalCategories").textContent = cats;
+
+            const _tr = (function(){ const t=new Date(); const s=new Date(t.getFullYear(),t.getMonth(),t.getDate()); return {start:s.toISOString(),end:new Date(s.getTime()+86399999).toISOString()}; })();
+            const _sr = await fetch('/api/sales/report?start='+encodeURIComponent(_tr.start)+'&end='+encodeURIComponent(_tr.end), {headers:authHeaders()});
+            const _td = _sr.ok ? await _sr.json() : [];
+            const _ts = _td.reduce((a,d)=>{ a.rev+=d.totalSales; a.prof+=d.totalProfit; return a; },{rev:0,prof:0});
+            const _tm = _ts.rev>0 ? ((_ts.prof/_ts.rev)*100).toFixed(2) : 0;
+            document.getElementById('todayRevenue').textContent = formatCurrency(_ts.rev);
+            document.getElementById('todayProfit').textContent = formatCurrency(_ts.prof);
+            document.getElementById('todayMargin').textContent = _tm+'%';
             await loadReport();
         } catch {
             showMessage("Error loading dashboard", "error");
