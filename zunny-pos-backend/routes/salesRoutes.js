@@ -8,6 +8,14 @@ router.post("/", auth, async (req, res) => {
   try {
     const { items, total, offlineId, date } = req.body;
 
+    // Validation
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: "Items are required" });
+    }
+    if (!total || total <= 0) {
+      return res.status(400).json({ message: "Valid total amount is required" });
+    }
+
     // Duplicate check — return existing sale if offlineId already exists
     if (offlineId) {
       const existing = await Sale.findOne({ offlineId });
@@ -21,10 +29,14 @@ router.post("/", auth, async (req, res) => {
     // Deduct stock
     for (const item of items) {
       const product = await Product.findById(item._id);
-      if (!product) continue;
+      if (!product) {
+        return res.status(404).json({
+          message: `Product ${item._id} not found`
+        });
+      }
       if (product.stock < item.qty) {
         return res.status(400).json({
-          message: `${product.name} has insufficient stock`
+          message: `${product.name} has insufficient stock (available: ${product.stock}, requested: ${item.qty})`
         });
       }
       product.stock -= item.qty;
@@ -34,8 +46,23 @@ router.post("/", auth, async (req, res) => {
 
     const margin = total > 0 ? ((profit / total) * 100).toFixed(2) : 0;
 
+    // Ensure date is valid (use current date if not provided or invalid)
+    let saleDate = new Date();
+    if (date) {
+      const parsedDate = new Date(date);
+      if (!isNaN(parsedDate.getTime())) {
+        saleDate = parsedDate;
+      }
+    }
+
     // Save sale
-    const sale = new Sale({ items, total, profit, offlineId: offlineId || null, date: date || Date.now() });
+    const sale = new Sale({ 
+      items, 
+      total: parseFloat(total), 
+      profit: parseFloat(profit.toFixed(2)), 
+      offlineId: offlineId || null, 
+      date: saleDate 
+    });
     await sale.save();
 
     res.json({ message: "Sale completed", sale, margin: `${margin}%` });
@@ -58,9 +85,17 @@ router.get("/report", auth, async (req, res) => {
     if (start && end) {
       const startDate = new Date(start);
       const endDate = new Date(end);
+      
+      // Validate dates
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return res.status(400).json({ message: "Invalid date format" });
+      }
+      
+      // If date is in YYYY-MM-DD format, set end time to end of day
       if (/^\d{4}-\d{2}-\d{2}$/.test(end)) {
         endDate.setHours(23, 59, 59, 999);
       }
+      
       match.date = {
         $gte: startDate,
         $lte: endDate
@@ -111,15 +146,15 @@ router.get("/today-performance", auth, async (req, res) => {
     });
 
     const transactionsToday = sales.length;
-    const revenueToday = sales.reduce((sum, sale) => sum + (sale.total || 0), 0);
-    const profitToday = sales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
-    const profitMargin = revenueToday > 0 ? ((profitToday / revenueToday) * 100).toFixed(2) : 0;
+    const revenueToday = sales.reduce((sum, sale) => sum + (parseFloat(sale.total) || 0), 0);
+    const profitToday = sales.reduce((sum, sale) => sum + (parseFloat(sale.profit) || 0), 0);
+    const profitMargin = revenueToday > 0 ? ((profitToday / revenueToday) * 100).toFixed(2) : "0.00";
 
     res.json({
       transactionsToday,
-      revenueToday,
-      profitToday,
-      profitMargin
+      revenueToday: parseFloat(revenueToday.toFixed(2)),
+      profitToday: parseFloat(profitToday.toFixed(2)),
+      profitMargin: parseFloat(profitMargin)
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

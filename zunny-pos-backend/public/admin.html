@@ -332,9 +332,9 @@
 
     async function loadDashboard() {
         try {
-            const [productsRes, salesRes] = await Promise.all([
+            const [productsRes, performanceRes] = await Promise.all([
                 fetch("/api/products"),
-                fetch(`/api/sales/report?start=${encodeURIComponent(getTodayDateRange().start)}&end=${encodeURIComponent(getTodayDateRange().end)}`, {
+                fetch("/api/sales/today-performance", {
                     headers: authHeaders()
                 })
             ]);
@@ -352,16 +352,19 @@
             document.getElementById("lowStock").textContent = lowStock;
             document.getElementById("totalCategories").textContent = cats;
 
-            const _tr = (function(){ const t=new Date(); const s=new Date(t.getFullYear(),t.getMonth(),t.getDate()); return {start:s.toISOString(),end:new Date(s.getTime()+86399999).toISOString()}; })();
-            const _sr = await fetch('/api/sales/report?start='+encodeURIComponent(_tr.start)+'&end='+encodeURIComponent(_tr.end), {headers:authHeaders()});
-            const _td = _sr.ok ? await _sr.json() : [];
-            const _ts = _td.reduce((a,d)=>{ a.rev+=d.totalSales; a.prof+=d.totalProfit; return a; },{rev:0,prof:0});
-            const _tm = _ts.rev>0 ? ((_ts.prof/_ts.rev)*100).toFixed(2) : 0;
-            document.getElementById('todayRevenue').textContent = formatCurrency(_ts.rev);
-            document.getElementById('todayProfit').textContent = formatCurrency(_ts.prof);
-            document.getElementById('todayMargin').textContent = _tm+'%';
+            // Load today's performance metrics
+            if (performanceRes.ok) {
+                const performance = await performanceRes.json();
+                document.getElementById('todayRevenue').textContent = formatCurrency(performance.revenueToday || 0);
+                document.getElementById('todayProfit').textContent = formatCurrency(performance.profitToday || 0);
+                document.getElementById('todayMargin').textContent = (parseFloat(performance.profitMargin) || 0) + '%';
+            } else {
+                throw new Error("Unable to load today's performance");
+            }
+
             await loadReport();
-        } catch {
+        } catch (error) {
+            console.error("Dashboard error:", error);
             showMessage("Error loading dashboard", "error");
         }
     }
