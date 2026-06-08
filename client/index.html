@@ -487,7 +487,7 @@
       alert("📦 Sale saved offline. Will sync when internet is restored.");
     }
 
-    printReceipt();
+    printReceipt(cart, total);
     clearCart();
   }
 
@@ -525,9 +525,9 @@
     alert("✅ Offline sales synced");
   }
 
-  function printReceipt() {
+  function printReceipt(cartItems = cart, cartTotal = total) {
     const date = new Date().toLocaleString();
-    const rows = cart.map(i => `<tr><td>${i.name} x${i.qty}</td><td style="text-align:right">&#8358;${(i.price * i.qty).toLocaleString()}</td></tr>`).join("");
+    const rows = (cartItems || []).map(i => `<tr><td>${i.name} x${i.qty}</td><td style="text-align:right">&#8358;${(i.price * i.qty).toLocaleString()}</td></tr>`).join("");
     const w = window.open("", "PRINT", "width=320,height=600");
     w.document.write(`<html><head><style>
       @media print { @page { margin: 0; size: 80mm auto; } }
@@ -548,7 +548,7 @@
       <div class="divider"></div>
       <table>${rows}</table>
       <div class="divider"></div>
-      <div class="tot"><span>TOTAL</span><span>&#8358;${total.toLocaleString()}</span></div>
+      <div class="tot"><span>TOTAL</span><span>&#8358;${(cartTotal || 0).toLocaleString()}</span></div>
       <div class="divider"></div>
       <p class="footer">Thank you for shopping!</p>
     </body></html>`);
