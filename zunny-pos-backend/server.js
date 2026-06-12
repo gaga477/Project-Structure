@@ -170,6 +170,7 @@ async function startServer() {
     await ensureDefaultAdmin();
   } catch (err) {
     console.error("Database startup issue:", err.message || err);
+    process.exit(1);
   }
 
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
