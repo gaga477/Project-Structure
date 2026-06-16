@@ -9,7 +9,11 @@ const connectDB = async () => {
     console.log("MONGO URI:", uri ? "(hidden)" : undefined);
 
     await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      bufferCommands: false,
+      maxPoolSize: 10,
+      minPoolSize: 2,
     });
 
     console.log("MongoDB Connected ✅");
