@@ -316,6 +316,8 @@
   </div>
   <button class="logout-btn" onclick="logout()">Logout</button>
   <div id="networkStatus" style="text-align:center; padding: 10px; font-size:13px; font-weight:600;"></div>
+  <div id="pendingStatus" style="text-align:center; padding: 10px; font-size:13px; font-weight:600; color:#334155"></div>
+  <button class="logout-btn" style="margin-top:8px;background:#2563eb" onclick="trySyncPendingSales()">Sync Pending Sales</button>
 </div>
 
 <div class="main">
@@ -465,7 +467,7 @@
       offlineId: Date.now().toString(),
       items: cart,
       total,
-      date: new Date()
+      date: new Date().toISOString()
     };
 
     try {
@@ -477,33 +479,72 @@
         },
         body: JSON.stringify(saleData)
       });
-      if (!res.ok) throw new Error();
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `Sale sync failed (${res.status})`);
+      }
+
+      await res.json();
       alert("✅ Sale synced online");
-    } catch {
-      // Save offline
-      let pendingSales = JSON.parse(localStorage.getItem("pendingSales")) || [];
+    } catch (err) {
+      let pendingSales = [];
+      try {
+        pendingSales = JSON.parse(localStorage.getItem("pendingSales") || "[]");
+      } catch {
+        pendingSales = [];
+      }
       pendingSales.push(saleData);
       localStorage.setItem("pendingSales", JSON.stringify(pendingSales));
       alert("📦 Sale saved offline. Will sync when internet is restored.");
+    updatePendingStatus();
     }
 
-    printReceipt(cart, total);
+    printReceipt(cart, total, saleData.offlineId);
     clearCart();
+  }
+
+  function getPendingSales() {
+    try {
+      return JSON.parse(localStorage.getItem("pendingSales") || "[]");
+    } catch {
+      return [];
+    }
+  }
+
+  function updatePendingStatus() {
+    const pendingCount = getPendingSales().length;
+    const pendingEl = document.getElementById("pendingStatus");
+    if (!pendingEl) return;
+    pendingEl.textContent = pendingCount > 0 ? `⏳ Pending sales: ${pendingCount}` : "✅ No pending sales";
+  }
+
+  async function trySyncPendingSales() {
+    await syncPendingSales();
+    updatePendingStatus();
   }
 
   // Sync pending offline sales when back online
   async function syncPendingSales() {
-    let pendingSales = JSON.parse(localStorage.getItem("pendingSales")) || [];
-    if (pendingSales.length === 0) return;
+    let pendingSales = [];
+    try {
+      pendingSales = JSON.parse(localStorage.getItem("pendingSales") || "[]");
+    } catch {
+      pendingSales = [];
+    }
 
-    const syncedIds = JSON.parse(localStorage.getItem("syncedIds")) || [];
+    if (pendingSales.length === 0) {
+      return;
+    }
+
+    const syncedIds = JSON.parse(localStorage.getItem("syncedIds") || "[]");
+    let anySynced = false;
 
     for (const sale of pendingSales) {
-      // Skip already synced sales
       if (syncedIds.includes(sale.offlineId)) continue;
 
       try {
-        await fetch("/api/sales", {
+        const res = await fetch("/api/sales", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -511,26 +552,52 @@
           },
           body: JSON.stringify(sale)
         });
-        // Mark as synced
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.message || `Sync failed (${res.status})`);
+        }
+
+        await res.json();
         syncedIds.push(sale.offlineId);
         localStorage.setItem("syncedIds", JSON.stringify(syncedIds));
-      } catch {
-        return; // Stop if any request fails, try again next time
+        anySynced = true;
+      } catch (err) {
+        console.warn("Pending sale sync failed:", err.message || err);
+        return;
       }
     }
 
-    // All synced — clear the queue and synced IDs
-    localStorage.removeItem("pendingSales");
-    localStorage.removeItem("syncedIds");
-    alert("✅ Offline sales synced");
+    if (anySynced) {
+      localStorage.removeItem("pendingSales");
+      localStorage.removeItem("syncedIds");
+      alert("✅ Offline sales synced");
+    }
   }
 
-  function printReceipt(cartItems = cart, cartTotal = total) {
+  function printReceipt(cartItems = cart, cartTotal = total, receiptNo = Date.now().toString(), cashierName = localStorage.getItem("username") || "Cashier") {
     const date = new Date().toLocaleString();
     const rows = (cartItems || []).map(i => `<tr><td>${i.name} x${i.qty}</td><td style="text-align:right">&#8358;${(i.price * i.qty).toLocaleString()}</td></tr>`).join("");
+    const receiptHtml = (copyLabel) => `
+      <div class="receipt-copy">
+        <h2>Zunny Mini Mart</h2>
+        <p><strong>${copyLabel}</strong></p>
+        <p>Receipt No: ${receiptNo}</p>
+        <p>Cashier: ${cashierName}</p>
+        <p>No: 221 New Ogorode road Sapele</p>
+        <p>Tel: 08088309326, 07066787348</p>
+        <p>${date}</p>
+        <div class="divider"></div>
+        <table>${rows}</table>
+        <div class="divider"></div>
+        <div class="tot"><span>TOTAL</span><span>&#8358;${(cartTotal || 0).toLocaleString()}</span></div>
+        <div class="divider"></div>
+        <p class="footer">Thank you for shopping!</p>
+      </div>`;
+
     const w = window.open("", "PRINT", "width=320,height=600");
     w.document.write(`<html><head><style>
-      @media print { @page { margin: 0; size: 80mm auto; } }
+      @media print { @page { margin: 0; size: 80mm auto; } .page-break { page-break-after: always; } }
       body{font-family:monospace;width:72mm;margin:0 auto;font-size:13px}
       h2{text-align:center;font-size:15px;margin:6px 0}
       p{text-align:center;margin:3px 0;font-size:12px}
@@ -540,17 +607,12 @@
       .divider{border-top:1px dashed #000;margin:6px 0}
       .tot{font-weight:bold;font-size:14px;display:flex;justify-content:space-between;padding-top:6px}
       .footer{text-align:center;margin-top:8px;font-size:11px}
+      .receipt-copy{padding:6px 0;}
+      .receipt-copy p strong{font-size:13px;display:block;margin-bottom:4px;}
     </style></head><body>
-      <h2>Zunny Mini Mart</h2>
-      <p>No: 221 New Ogorode road Sapele</p>
-      <p>Tel: 08088309326, 07066787348</p>
-      <p>${date}</p>
-      <div class="divider"></div>
-      <table>${rows}</table>
-      <div class="divider"></div>
-      <div class="tot"><span>TOTAL</span><span>&#8358;${(cartTotal || 0).toLocaleString()}</span></div>
-      <div class="divider"></div>
-      <p class="footer">Thank you for shopping!</p>
+      ${receiptHtml('CASHIER COPY')}
+      <div class="page-break"></div>
+      ${receiptHtml('CUSTOMER COPY')}
     </body></html>`);
     w.document.close();
     w.focus();
@@ -560,6 +622,7 @@
   function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
+    localStorage.removeItem("username");
     window.location.href = "login.html";
   }
 
@@ -598,15 +661,18 @@
   updateNetworkStatus();
 
   window.addEventListener("offline", () => document.getElementById("offlineBanner").style.display = "block");
-  window.addEventListener("online", () => {
+  window.addEventListener("online", async () => {
     document.getElementById("offlineBanner").style.display = "none";
     loadProducts();
-    syncPendingSales();
+    await syncPendingSales();
+    updatePendingStatus();
   });
-  window.addEventListener("online", syncPendingSales);
   if (!navigator.onLine) document.getElementById("offlineBanner").style.display = "block";
 
-  if (navigator.onLine) syncPendingSales();
+  updatePendingStatus();
+  if (navigator.onLine) {
+    syncPendingSales().then(updatePendingStatus);
+  }
 
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
 
