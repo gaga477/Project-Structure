@@ -6,6 +6,14 @@ const auth = require("../middleware/auth");
 // Create sale + deduct stock
 router.post("/", auth, async (req, res) => {
   try {
+    // Debug log incoming sale POST (shortened body for safety)
+    try {
+      const shortBody = JSON.stringify(req.body).slice(0, 2000);
+      console.log("[DEBUG] POST /api/sales from:", req.user && req.user.username ? req.user.username : '(unknown)', "body:", shortBody);
+    } catch (e) {
+      console.warn("[DEBUG] Failed to stringify sale body:", e && e.message ? e.message : e);
+    }
+
     const { items, total, offlineId, date } = req.body;
 
     // Validation
