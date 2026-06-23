@@ -463,12 +463,23 @@
   async function checkout() {
     if (!cart.length) return alert("Cart is empty");
 
+    // Snapshot cart and total before clearing
+    const saleItems = cart.map(i => ({ ...i }));
+    const saleTotal = total;
+
+    // Generate a unique offlineId using timestamp + random suffix to avoid collisions
+    const offlineId = Date.now().toString() + "_" + Math.random().toString(36).slice(2, 8);
+
     const saleData = {
-      offlineId: Date.now().toString(),
-      items: cart,
-      total,
+      offlineId,
+      items: saleItems,
+      total: saleTotal,
       date: new Date().toISOString()
     };
+
+    // Print and clear cart immediately so cashier can start the next sale
+    printReceipt(saleItems, saleTotal, offlineId);
+    clearCart();
 
     try {
       const res = await fetch("/api/sales", {
@@ -486,22 +497,18 @@
       }
 
       await res.json();
-      alert("✅ Sale synced online");
+      // Sale saved online — no alert needed, keeps flow fast
     } catch (err) {
+      // Save to pending queue for later sync
       let pendingSales = [];
-      try {
-        pendingSales = JSON.parse(localStorage.getItem("pendingSales") || "[]");
-      } catch {
-        pendingSales = [];
+      try { pendingSales = JSON.parse(localStorage.getItem("pendingSales") || "[]"); } catch { pendingSales = []; }
+      // Avoid duplicates in the pending queue
+      if (!pendingSales.find(s => s.offlineId === offlineId)) {
+        pendingSales.push(saleData);
+        localStorage.setItem("pendingSales", JSON.stringify(pendingSales));
       }
-      pendingSales.push(saleData);
-      localStorage.setItem("pendingSales", JSON.stringify(pendingSales));
-      alert("📦 Sale saved offline. Will sync when internet is restored.");
-    updatePendingStatus();
+      updatePendingStatus();
     }
-
-    printReceipt(cart, total, saleData.offlineId);
-    clearCart();
   }
 
   function getPendingSales() {
@@ -520,8 +527,14 @@
   }
 
   async function trySyncPendingSales() {
+    const before = getPendingSales().length;
     await syncPendingSales();
+    const after = getPendingSales().length;
+    const synced = before - after;
     updatePendingStatus();
+    if (synced > 0) alert(`✅ ${synced} pending sale(s) synced successfully`);
+    else if (before === 0) alert("✅ No pending sales to sync");
+    else alert("⚠️ Could not sync pending sales. Check your connection.");
   }
 
   // Sync pending offline sales when back online
@@ -533,16 +546,12 @@
       pendingSales = [];
     }
 
-    if (pendingSales.length === 0) {
-      return;
-    }
+    if (pendingSales.length === 0) return;
 
-    const syncedIds = JSON.parse(localStorage.getItem("syncedIds") || "[]");
-    let anySynced = false;
+    const remaining = [];
+    let syncedCount = 0;
 
     for (const sale of pendingSales) {
-      if (syncedIds.includes(sale.offlineId)) continue;
-
       try {
         const res = await fetch("/api/sales", {
           method: "POST",
@@ -555,23 +564,35 @@
 
         if (!res.ok) {
           const errorData = await res.json().catch(() => ({}));
-          throw new Error(errorData.message || `Sync failed (${res.status})`);
+          // If server says duplicate, treat as synced — don't keep it
+          if (res.status === 409 || (errorData && errorData.offlineId)) {
+            syncedCount++;
+          } else {
+            // Genuine failure — keep in queue for next attempt
+            remaining.push(sale);
+          }
+          continue;
         }
 
         await res.json();
-        syncedIds.push(sale.offlineId);
-        localStorage.setItem("syncedIds", JSON.stringify(syncedIds));
-        anySynced = true;
+        syncedCount++;
       } catch (err) {
+        // Network error — keep this sale for next attempt, continue trying others
         console.warn("Pending sale sync failed:", err.message || err);
-        return;
+        remaining.push(sale);
       }
     }
 
-    if (anySynced) {
+    // Only keep the ones that genuinely failed
+    if (remaining.length > 0) {
+      localStorage.setItem("pendingSales", JSON.stringify(remaining));
+    } else {
       localStorage.removeItem("pendingSales");
-      localStorage.removeItem("syncedIds");
-      alert("✅ Offline sales synced");
+    }
+    localStorage.removeItem("syncedIds"); // no longer needed with new logic
+
+    if (syncedCount > 0) {
+      console.log(`✅ Synced ${syncedCount} offline sale(s)`);
     }
   }
 
