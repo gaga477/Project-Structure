@@ -628,6 +628,69 @@
     document.getElementById("loginPassword").addEventListener("keydown", (e) => {
         if (e.key === "Enter") login();
     });
+
+    // Load Recent Sales — shows every individual sale with items, cashier, total
+    async function loadRawSales() {
+        const info = document.getElementById("rawSalesInfo");
+        const list = document.getElementById("rawSalesList");
+        info.textContent = "Loading recent sales...";
+        list.innerHTML = "";
+
+        try {
+            const res = await fetch("/api/sales/recent?limit=100", { headers: authHeaders() });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                info.textContent = "Error: " + (err.message || res.status);
+                return;
+            }
+            const sales = await res.json();
+
+            if (!sales.length) {
+                info.textContent = "No sales recorded yet.";
+                return;
+            }
+
+            info.textContent = `Showing ${sales.length} most recent sale(s):`;
+
+            list.innerHTML = sales.map(sale => {
+                const date = new Date(sale.date).toLocaleString();
+                const itemRows = (sale.items || []).map(i =>
+                    `<tr>
+                        <td style="padding:3px 8px;color:#374151">${i.name || "Unknown"}</td>
+                        <td style="padding:3px 8px;text-align:center;color:#6b7280">${i.qty}</td>
+                        <td style="padding:3px 8px;text-align:right;color:#374151">&#8358;${((i.price || 0) * (i.qty || 1)).toLocaleString()}</td>
+                    </tr>`
+                ).join("");
+
+                return `
+                <li style="background:white;border:1px solid #e9ecef;border-radius:10px;margin-bottom:12px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.05)">
+                    <div style="background:#f8f9fa;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;border-bottom:1px solid #e9ecef">
+                        <div>
+                            <span style="font-weight:700;color:#1e293b">&#128722; ${sale.cashier || "cashier"}</span>
+                            <span style="margin-left:12px;font-size:12px;color:#6b7280">${date}</span>
+                        </div>
+                        <div style="font-weight:800;font-size:15px;color:#16a34a">&#8358;${(sale.total || 0).toLocaleString()}</div>
+                    </div>
+                    <div style="padding:8px 14px">
+                        <table style="width:100%;border-collapse:collapse;font-size:13px">
+                            <thead>
+                                <tr style="color:#9ca3af;font-size:11px;text-transform:uppercase">
+                                    <th style="padding:3px 8px;text-align:left;font-weight:600">Product</th>
+                                    <th style="padding:3px 8px;text-align:center;font-weight:600">Qty</th>
+                                    <th style="padding:3px 8px;text-align:right;font-weight:600">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>${itemRows}</tbody>
+                        </table>
+                    </div>
+                </li>`;
+            }).join("");
+
+        } catch (err) {
+            info.textContent = "Failed to load sales. Please try again.";
+            console.error("loadRawSales error:", err);
+        }
+    }
 </script>
 </body>
 </html>

@@ -25,6 +25,10 @@ const saleSchema = new mongoose.Schema({
     default: null,
     sparse: true
   },
+  cashier: {
+    type: String,
+    default: "cashier"
+  },
   date: {
     type: Date,
     default: () => new Date(),

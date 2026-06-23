@@ -577,7 +577,23 @@
 
   function printReceipt(cartItems = cart, cartTotal = total, receiptNo = Date.now().toString(), cashierName = localStorage.getItem("username") || "Cashier") {
     const date = new Date().toLocaleString();
-    const rows = (cartItems || []).map(i => `<tr><td>${i.name} x${i.qty}</td><td style="text-align:right">&#8358;${(i.price * i.qty).toLocaleString()}</td></tr>`).join("");
+
+    // Build receipt rows: name on first line, qty x unit price → line total on second line
+    const rows = (cartItems || []).map(i => {
+      const lineTotal = (i.price * i.qty).toLocaleString();
+      const unitPrice = (i.price || 0).toLocaleString();
+      return `
+        <tr>
+          <td colspan="2" style="padding-bottom:1px;font-weight:600">${i.name}</td>
+        </tr>
+        <tr>
+          <td style="padding-left:6px;color:#444">${i.qty} x &#8358;${unitPrice}</td>
+          <td style="text-align:right;font-weight:bold">&#8358;${lineTotal}</td>
+        </tr>`;
+    }).join("");
+
+    const itemCount = (cartItems || []).reduce((a, i) => a + i.qty, 0);
+
     const receiptHtml = (copyLabel) => `
       <div class="receipt-copy">
         <h2>Zunny Mini Mart</h2>
@@ -588,11 +604,21 @@
         <p>Tel: 08088309326, 07066787348</p>
         <p>${date}</p>
         <div class="divider"></div>
-        <table>${rows}</table>
+        <table>
+          <thead>
+            <tr>
+              <th style="text-align:left;padding-bottom:4px;font-size:11px;border-bottom:1px solid #000">ITEM</th>
+              <th style="text-align:right;padding-bottom:4px;font-size:11px;border-bottom:1px solid #000">AMOUNT</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
         <div class="divider"></div>
+        <div class="tot"><span>Items: ${itemCount}</span><span></span></div>
         <div class="tot"><span>TOTAL</span><span>&#8358;${(cartTotal || 0).toLocaleString()}</span></div>
         <div class="divider"></div>
         <p class="footer">Thank you for shopping!</p>
+        <p class="footer">Please come again &#9786;</p>
       </div>`;
 
     const w = window.open("", "PRINT", "width=320,height=600");
@@ -602,11 +628,11 @@
       h2{text-align:center;font-size:15px;margin:6px 0}
       p{text-align:center;margin:3px 0;font-size:12px}
       table{width:100%;border-collapse:collapse;margin:8px 0}
-      td{padding:3px 0;vertical-align:top}
-      td:last-child{text-align:right;white-space:nowrap}
+      td,th{padding:3px 0;vertical-align:top}
+      td:last-child,th:last-child{text-align:right;white-space:nowrap}
       .divider{border-top:1px dashed #000;margin:6px 0}
-      .tot{font-weight:bold;font-size:14px;display:flex;justify-content:space-between;padding-top:6px}
-      .footer{text-align:center;margin-top:8px;font-size:11px}
+      .tot{font-weight:bold;font-size:14px;display:flex;justify-content:space-between;padding-top:4px}
+      .footer{text-align:center;margin-top:6px;font-size:11px}
       .receipt-copy{padding:6px 0;}
       .receipt-copy p strong{font-size:13px;display:block;margin-bottom:4px;}
     </style></head><body>

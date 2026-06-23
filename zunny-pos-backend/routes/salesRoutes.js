@@ -69,6 +69,7 @@ router.post("/", auth, async (req, res) => {
       total: parseFloat(total), 
       profit: parseFloat(profit.toFixed(2)), 
       offlineId: offlineId || null, 
+      cashier: req.user && req.user.username ? req.user.username : "cashier",
       date: saleDate 
     });
     await sale.save();
@@ -191,6 +192,23 @@ router.get("/", auth, async (req, res) => {
   }
   try {
     const sales = await Sale.find().sort({ date: -1 });
+    res.json(sales);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 🧾 Get recent individual sales with full item breakdown (admin only)
+router.get("/recent", auth, async (req, res) => {
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ message: "Admins only" });
+  }
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    const sales = await Sale.find()
+      .sort({ date: -1 })
+      .limit(limit)
+      .lean();
     res.json(sales);
   } catch (err) {
     res.status(500).json({ error: err.message });
