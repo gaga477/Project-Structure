@@ -600,61 +600,58 @@
     cartItems   = cartItems   !== undefined ? cartItems   : cart;
     cartTotal   = cartTotal   !== undefined ? cartTotal   : total;
     receiptNo   = receiptNo   || Date.now().toString();
-    cashierName = cashierName || localStorage.getItem("username") || "Cashier";
 
     var date = new Date().toLocaleString("en-NG");
-    var itemCount = (cartItems || []).reduce(function(a, i) { return a + i.qty; }, 0);
 
+    // Build one row per item: name left, line-total right (no sub-row)
     var rows = (cartItems || []).map(function(i) {
+      var amt = (i.price * i.qty).toLocaleString();
       return "<tr>" +
-               "<td style=""font-weight:600;padding:2px 0"">" + i.name + "</td>" +
-               "<td style=""text-align:right;font-weight:bold;white-space:nowrap;padding:2px 0"">&#8358;" + (i.price * i.qty).toLocaleString() + "</td>" +
-             "</tr>" +
-             "<tr>" +
-               "<td style=""padding:0 0 5px 8px;font-size:11px;color:#444"">" + i.qty + " x &#8358;" + i.price.toLocaleString() + "</td>" +
-               "<td></td>" +
+               "<td>" + i.name + (i.qty > 1 ? " x" + i.qty : "") + "</td>" +
+               "<td>&#8358;" + amt + "</td>" +
              "</tr>";
     }).join("");
 
-    var html = "<!DOCTYPE html><html>" +
-      "<head><meta charset=UTF-8>" +
+    var html =
+      "<!DOCTYPE html><html><head><meta charset=UTF-8>" +
       "<style>" +
-        "@media print{" +
-          "@page{margin:3mm 2mm;}" +
-          "body{margin:0;}" +
-        "}" +
+        "@media print{@page{margin:3mm 2mm;}body{margin:0;}}" +
         "*{box-sizing:border-box;margin:0;padding:0;}" +
         "html,body{direction:ltr;writing-mode:horizontal-tb;}" +
-        "body{font-family:Courier New,Courier,monospace;width:72mm;margin:0 auto;padding:4px 2px;font-size:13px;color:#000;}" +
-        "h2{text-align:center;font-size:15px;margin:4px 0 2px;}" +
-        ".c{text-align:center;margin:2px 0;font-size:12px;}" +
-        "hr{border:none;border-top:1px dashed #000;margin:5px 0;}" +
-        "table{width:100%;border-collapse:collapse;margin:4px 0;}" +
-        "td{vertical-align:top;padding:2px 0;font-size:13px;line-height:1.4;}" +
+        "body{font-family:'Courier New',Courier,monospace;width:72mm;margin:0 auto;padding:4px 2px;font-size:12px;color:#000;}" +
+        "h2{text-align:center;font-size:14px;font-weight:bold;margin:3px 0;}" +
+        ".c{text-align:center;margin:2px 0;font-size:11px;}" +
+        ".rno{text-align:center;font-size:11px;margin:2px 0;letter-spacing:1px;}" +
+        "hr{border:none;border-top:1px dashed #000;margin:4px 0;}" +
+        "table{width:100%;border-collapse:collapse;margin:3px 0;}" +
+        "td{vertical-align:top;padding:2px 0;font-size:12px;line-height:1.4;}" +
         "td:last-child{text-align:right;white-space:nowrap;}" +
-        ".hdr td{font-size:11px;font-weight:bold;text-transform:uppercase;border-bottom:1px solid #000;padding-bottom:3px;}" +
-        ".totline{display:flex;justify-content:space-between;font-size:15px;font-weight:bold;padding:4px 0 2px;}" +
-        ".subline{display:flex;justify-content:space-between;font-size:12px;padding:1px 0;}" +
+        "thead td{font-weight:bold;border-bottom:1px dashed #000;padding-bottom:3px;}" +
+        ".totrow td{font-weight:bold;font-size:13px;border-top:1px dashed #000;padding-top:4px;}" +
         ".foot{text-align:center;font-size:11px;margin:3px 0;}" +
         ".cut{height:14mm;}" +
-      "</style></head>" +
-      "<body>" +
-        "<h2>ZUNNY MINI MART</h2>" +
-        "<p class=c>No: 221 New Ogorode Road, Sapele</p>" +
-        "<p class=c>Tel: 08088309326 / 07066787348</p>" +
-        "<hr>" +
-        "<p class=c>Receipt: " + receiptNo + "</p>" +
-        "<p class=c>Cashier: " + cashierName + "</p>" +
-        "<p class=c>" + date + "</p>" +
-        "<hr>" +
-        "<table><tr class=hdr><td>Item</td><td style=text-align:right>Amt</td></tr>" + rows + "</table>" +
-        "<hr>" +
-        "<div class=subline><span>Items:</span><span>" + itemCount + "</span></div>" +
-        "<div class=totline><span>TOTAL</span><span>&#8358;" + (cartTotal || 0).toLocaleString() + "</span></div>" +
-        "<hr>" +
-        "<p class=foot>*** Thank you for shopping! ***</p>" +
-        "<p class=foot>Please come again</p>" +
-        "<div class=cut></div>" +
+      "</style></head><body>" +
+
+      "<p class=foot>Thank you for shopping!</p>" +
+      "<hr>" +
+      "<h2>ZUNNY MINI MART</h2>" +
+      "<p class=rno>Receipt No: " + receiptNo + "</p>" +
+      "<p class=c>No: 221 New Ogorode Road Sapele</p>" +
+      "<p class=c>Tel: 08088309326, 07066787348</p>" +
+      "<p class=c>" + date + "</p>" +
+      "<hr>" +
+
+      "<table>" +
+        "<thead><tr><td>Item</td><td>Amount</td></tr></thead>" +
+        "<tbody>" + rows + "</tbody>" +
+        "<tfoot><tr class=totrow><td>TOTAL =</td><td>&#8358;" + (cartTotal || 0).toLocaleString() + "</td></tr></tfoot>" +
+      "</table>" +
+
+      "<hr>" +
+      "<p class=foot>Thank you for shopping!</p>" +
+      "<p class=foot>Please come again &#9786;</p>" +
+      "<div class=cut></div>" +
+
       "</body></html>";
 
     var w = window.open("", "PRINT", "width=320,height=700");
@@ -663,7 +660,8 @@
     w.focus();
     setTimeout(function() { w.print(); w.close(); }, 400);
   }
-  function logout() {
+
+    function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     localStorage.removeItem("username");
