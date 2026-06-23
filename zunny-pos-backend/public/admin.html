@@ -369,6 +369,7 @@
             }
 
             await loadReport();
+            await loadRawSales();
         } catch (error) {
             console.error("Dashboard error:", error);
             showMessage("Error loading dashboard", "error");

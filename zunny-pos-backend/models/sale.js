@@ -22,8 +22,7 @@ const saleSchema = new mongoose.Schema({
   },
   offlineId: { 
     type: String, 
-    default: null,
-    sparse: true
+    default: null
   },
   cashier: {
     type: String,
