@@ -129,6 +129,19 @@ app.use(express.static(path.join(__dirname, "../client")));
 
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/products", require("./routes/productRoutes"));
+
+// Temporary debug endpoint
+const Product = require("./models/product");
+app.get("/api/debug-products", async (req, res) => {
+  try {
+    const db = mongoose.connection.db ? mongoose.connection.db.databaseName : "not connected";
+    const count = await Product.countDocuments();
+    const one = await Product.findOne();
+    res.json({ database: db, count, sample: one });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 app.use("/api/sales", require("./routes/salesRoutes"));
 app.use("/api/images", require("./routes/imageRoutes"));
 
