@@ -177,6 +177,37 @@ app.get("*", (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
+function killPortAndRestart() {
+  const { execSync } = require("child_process");
+  try {
+    console.log(`⚠️  Port ${PORT} is in use. Killing old process...`);
+    // Works on Windows and Unix
+    if (process.platform === "win32") {
+      const result = execSync(`netstat -ano | findstr :${PORT}`, { encoding: "utf8" });
+      const lines = result.trim().split("\n");
+      const pids = new Set();
+      lines.forEach(line => {
+        const parts = line.trim().split(/\s+/);
+        const pid = parts[parts.length - 1];
+        if (pid && pid !== "0" && /^\d+$/.test(pid)) pids.add(pid);
+      });
+      pids.forEach(pid => {
+        try {
+          execSync(`taskkill /PID ${pid} /F`, { encoding: "utf8" });
+          console.log(`✅ Killed process ${pid}`);
+        } catch (e) { /* already gone */ }
+      });
+    } else {
+      execSync(`lsof -ti tcp:${PORT} | xargs kill -9`, { encoding: "utf8" });
+    }
+    // Small delay then retry
+    setTimeout(() => startServer(), 1000);
+  } catch (e) {
+    console.error(`❌ Could not free port ${PORT}. Please close it manually.`);
+    process.exit(1);
+  }
+}
+
 async function startServer() {
   try {
     await connectDB();
@@ -186,14 +217,11 @@ async function startServer() {
     // Don't exit — server can still run for diagnostics
   }
 
-  const server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  const server = app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
 
   server.on("error", (err) => {
     if (err.code === "EADDRINUSE") {
-      console.error(`❌ Port ${PORT} is already in use.`);
-      console.error(`   Run this command to free it: npx kill-port ${PORT}`);
-      console.error(`   Or close the other process using port ${PORT} and try again.`);
-      process.exit(1);
+      killPortAndRestart();
     } else {
       throw err;
     }
