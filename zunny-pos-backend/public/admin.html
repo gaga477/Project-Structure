@@ -402,11 +402,13 @@
 
             document.getElementById("historyStatus").textContent = `Showing ${report.length} day(s) of sales history.`;
             body.innerHTML = report.map(day => {
-                const date = new Date(day._id.year, day._id.month - 1, day._id.day);
+                // Build date string directly from the grouped values — no timezone shift
+                const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                const dateStr = `${String(day._id.day).padStart(2,'0')} ${months[day._id.month - 1]} ${day._id.year}`;
                 const margin = day.totalSales > 0 ? ((day.totalProfit / day.totalSales) * 100).toFixed(2) : 0;
                 return `
                     <tr>
-                        <td style="padding:12px;border-bottom:1px solid #e9ecef">${date.toLocaleDateString()}</td>
+                        <td style="padding:12px;border-bottom:1px solid #e9ecef">${dateStr}</td>
                         <td style="padding:12px;text-align:right;border-bottom:1px solid #e9ecef">${day.count}</td>
                         <td style="padding:12px;text-align:right;border-bottom:1px solid #e9ecef">${formatCurrency(day.totalSales)}</td>
                         <td style="padding:12px;text-align:right;border-bottom:1px solid #e9ecef">${formatCurrency(day.totalProfit)}</td>
@@ -654,7 +656,7 @@
             info.textContent = `Showing ${sales.length} most recent sale(s):`;
 
             list.innerHTML = sales.map(sale => {
-                const date = new Date(sale.date).toLocaleString();
+                const date = new Date(sale.date).toLocaleString("en-NG", { timeZone: "Africa/Lagos", day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" });
                 const itemRows = (sale.items || []).map(i =>
                     `<tr>
                         <td style="padding:3px 8px;color:#374151">${i.name || "Unknown"}</td>

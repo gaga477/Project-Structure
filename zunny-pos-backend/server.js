@@ -183,10 +183,21 @@ async function startServer() {
     await ensureDefaultAdmin();
   } catch (err) {
     console.error("Database startup issue:", err.message || err);
-    process.exit(1);
+    // Don't exit — server can still run for diagnostics
   }
 
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  const server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+  server.on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(`❌ Port ${PORT} is already in use.`);
+      console.error(`   Run this command to free it: npx kill-port ${PORT}`);
+      console.error(`   Or close the other process using port ${PORT} and try again.`);
+      process.exit(1);
+    } else {
+      throw err;
+    }
+  });
 }
 
 startServer();

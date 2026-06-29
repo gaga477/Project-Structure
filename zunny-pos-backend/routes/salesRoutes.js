@@ -114,15 +114,23 @@ router.get("/report", auth, async (req, res) => {
     const report = await Sale.aggregate([
       { $match: match },
       {
+        // Convert UTC date to WAT (UTC+1) before grouping by day
+        $addFields: {
+          localDate: {
+            $dateAdd: { startDate: "$date", unit: "hour", amount: 1 }
+          }
+        }
+      },
+      {
         $group: {
           _id: {
-            day: { $dayOfMonth: "$date" },
-            month: { $month: "$date" },
-            year: { $year: "$date" }
+            day:   { $dayOfMonth: "$localDate" },
+            month: { $month:      "$localDate" },
+            year:  { $year:       "$localDate" }
           },
-          totalSales: { $sum: "$total" },
+          totalSales:  { $sum: "$total" },
           totalProfit: { $sum: "$profit" },
-          count: { $sum: 1 }
+          count:       { $sum: 1 }
         }
       },
       { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
